@@ -1,4 +1,4 @@
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xddf.usermodel.chart.*;
 import org.apache.poi.xssf.usermodel.*;
@@ -14,6 +14,10 @@ class ExcelEditor {
     private final FileOutputStream fos;
     private int currentRowIndex;
     private int maxNumberOfThreads;
+    private CellStyle initialListCellStyle;
+    private CellStyle equalStyle;
+    private CellStyle notEqualStyle;
+    private Row indexRow;
 
     ExcelEditor(int maxNumberOfThreads) throws FileNotFoundException {
         this.workbook = new XSSFWorkbook();
@@ -27,6 +31,23 @@ class ExcelEditor {
         }
     }
 
+    ExcelEditor() throws FileNotFoundException {
+        this.workbook = new XSSFWorkbook();
+        this.sheet = workbook.createSheet("List Transformation Differences");
+        this.fos = new FileOutputStream("src/main/resources/transform_report.xlsx");
+        this.currentRowIndex = 1;
+        initialListCellStyle = workbook.createCellStyle();
+        initialListCellStyle.setFillForegroundColor(IndexedColors.YELLOW.index);
+        initialListCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        equalStyle = workbook.createCellStyle();
+        equalStyle.setFillForegroundColor(IndexedColors.GREEN.index);
+        equalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        notEqualStyle = workbook.createCellStyle();
+        notEqualStyle.setFillForegroundColor(IndexedColors.RED.index);
+        notEqualStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        indexRow = sheet.createRow(0);
+    }
+
     void addRow(String taskType, List<Double> results){
         Row row = sheet.createRow(currentRowIndex);
         row.createCell(0).setCellValue(taskType);
@@ -36,6 +57,34 @@ class ExcelEditor {
             row.createCell(index).setCellValue(value);
             index++;
         }
+        currentRowIndex++;
+    }
+
+    void addRow(String listName, int[] initialList, int[] list){
+        Row row = sheet.createRow(currentRowIndex);
+        row.createCell(0).setCellValue(listName);
+        int similarCount = 0;
+        for(int i = 0; i < list.length; i++){
+            Cell cell = row.createCell(i + 1);
+            cell.setCellValue(list[i]);
+            if("initial".equals(listName)){
+                cell.setCellStyle(initialListCellStyle);
+                Cell indexCell = indexRow.createCell(i + 1);
+                indexCell.setCellValue(i);
+            } else {
+                if(initialList[i] == list[i]) {
+                    cell.setCellStyle(equalStyle);
+                    similarCount++;
+                }
+                else cell.setCellStyle(notEqualStyle);
+            }
+        }
+        if(!"initial".equals(listName)){
+            Row statisticRow = sheet.createRow(currentRowIndex + 5);
+            statisticRow.createCell(0).setCellValue(listName + " similar values number");
+            statisticRow.createCell(1).setCellValue(similarCount);
+        }
+        sheet.autoSizeColumn(0);
         currentRowIndex++;
     }
 
