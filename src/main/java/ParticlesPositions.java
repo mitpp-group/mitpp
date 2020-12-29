@@ -22,4 +22,8 @@ class ParticlesPositions {
     int getSize(){
         return positions.size();
     }
+
+    int getNumberOfParticlesInCell(int i){
+        return positions.get(i);
+    }
 }
